@@ -11,6 +11,8 @@ from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
+from flask_migrate import Migrate
+from datetime import datetime
 from forms import *
 #----------------------------------------------------------------------------#
 # App Config.
@@ -19,16 +21,18 @@ from forms import *
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5432/fyyur'
 db = SQLAlchemy(app)
-
 # TODO: connect to a local postgresql database
+
+migrate = Migrate(app, db)
 
 #----------------------------------------------------------------------------#
 # Models.
 #----------------------------------------------------------------------------#
 
 class Venue(db.Model):
-    __tablename__ = 'Venue'
+    __tablename__ = 'venues'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
@@ -39,10 +43,19 @@ class Venue(db.Model):
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
 
+    website = db.Column(db.String(120))
+    seeking_talent = db.Column(db.Boolean)
+    seeking_description = db.Column(db.String())
+    genres = db.Column(db.String())
+
+    shows = db.relationship("Show", back_populates="venue")
+
+    
+
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
-    __tablename__ = 'Artist'
+    __tablename__ = 'artists'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
@@ -52,8 +65,26 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    
+
+    shows = db.relationship("Show", back_populates="artist")
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
+
+    # "venue_id": 1,
+    # "venue_name": "The Musical Hop",
+    # "artist_id": 4,
+    # "artist_name": "Guns N Petals",
+    # "artist_image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
+    # "start_time": "2019-05-21T21:30:00.000Z"
+
+class Show(db.Model):
+  __tablename__ = 'shows'
+  venue_id = db.Column(db.Integer, db.ForeignKey('venues.id'), primary_key=True)
+  artist_id = db.Column(db.Integer, db.ForeignKey('artists.id'), primary_key=True)
+  venue = db.relationship("Venue", back_populates="shows")
+  artist = db.relationship("Artist", back_populates="shows")
+  start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
@@ -108,6 +139,42 @@ def venues():
       "num_upcoming_shows": 0,
     }]
   }]
+
+  all_venues = Venue.query.all()
+
+  data = []
+
+  for venue in all_venues:
+    was_added = False
+    # Add num_upcoming_shows
+    parsed_venue = {
+      "id": venue.id,
+      "name": venue.name,
+      "num_upcoming_shows": venue.id
+    }
+    for i in range(len(data)):
+      location = data[i]
+      if location["city"] == venue.city and location["state"] == venue.state:        
+        data[i]["venues"].append(parsed_venue)
+        was_added = True
+
+    if not was_added:    
+      data.append({
+        "city": venue.city,
+        "state": venue.state,
+        "venues": [
+          parsed_venue
+        ]
+      })
+         
+    # if list(filter(lambda location: location.city == venue.city and location.state == venue.state)):
+
+
+  
+  
+
+  # data = map(lambda venue: {**venue, "genres": venue["genres"].split()} , Venue.query.all())
+
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
@@ -206,6 +273,8 @@ def show_venue(venue_id):
     "past_shows_count": 1,
     "upcoming_shows_count": 1,
   }
+
+
   data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
   return render_template('pages/show_venue.html', venue=data)
 
