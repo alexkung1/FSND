@@ -1,7 +1,16 @@
 from datetime import datetime
 from flask_wtf import Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField
-from wtforms.validators import DataRequired, AnyOf, URL
+from wtforms.validators import DataRequired, AnyOf, URL, ValidationError
+
+
+# CUSTOM VALIDATORS
+
+def is_phone_number(form, field):
+    if len(field.data) > 10:
+        raise ValidationError('Phone number must be less than 10 characters')
+    elif not field.data.isnumeric():
+        raise ValidationError('Phone number must only contain numeric characters.')
 
 
 
@@ -184,14 +193,15 @@ class ArtistForm(Form):
     )
     phone = StringField(
         # TODO implement validation logic for state
-        'phone'
+        'phone', [is_phone_number]
     )
     image_link = StringField(
         'image_link'
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
-        'genres', validators=[DataRequired()],
+        'genres', validators=[DataRequired(), AnyOf(['Alternative', 'Blues', 'Classical', 'Country', 'Electronic', 'Folk', 'Funk', 'Hip-Hop', 'Heavy Metal', \
+            'Instrumental', 'Jazz', 'Musical Theatre', 'Pop', 'Punk', 'R&B', 'Reggae', 'Soul', 'Rock n Roll', 'Other'], "Not a valid choice")],
         choices=[
             ('Alternative', 'Alternative'),
             ('Blues', 'Blues'),

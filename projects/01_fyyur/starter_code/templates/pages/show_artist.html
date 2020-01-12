@@ -43,6 +43,13 @@
 	</div>
 	<div class="col-sm-6">
 		<img src="{{ artist.image_link }}" alt="Artist Image" />
+		<div style="margin-top: 10px;">
+			<button type="button" class="btn btn-secondary">
+				<a href="/artists/{{ artist.id }}/edit">
+					Edit Artist
+				</a>
+			</button>
+		</div>
 	</div>
 </div>
 <section>

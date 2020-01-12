@@ -47,6 +47,11 @@
 	<div class="col-sm-6">
 		<img src="{{ venue.image_link }}" alt="Venue Image" />
 		<div style="margin-top: 10px;">
+			<button type="button" class="btn btn-secondary">
+				<a href="/venues/{{ venue.id }}/edit" style="text-decoration: none;">
+					Edit Venue
+				</a>
+			</button>
 			<button type="button" class="btn btn-danger" id="delete">
 					Delete Venue
 			</button>
