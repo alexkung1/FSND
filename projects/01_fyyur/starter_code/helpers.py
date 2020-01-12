@@ -1,4 +1,5 @@
 from datetime import datetime
+# from app import Genre, Artist, Venue, Show
 
 def retrieve_upcoming_shows(shows):
     return [show for show in shows if show.start_time >= datetime.today()]
@@ -40,13 +41,21 @@ def transform_genres(genres):
     else:
         return genres
 
+# def replace_genres(model, genre_list):
+#     model.genres.clear()
+#     model.genres.extend(genre_list)
+
+# def parse_genres(genre_list):
+#     genres = [Genre.query.filter(Genre.name.ilike(genre)).first() for genre in genre_list]
+#     return [genre for genre in genres if genre]
+
 def transform_artist_detail(artist):
     past_shows = retrieve_past_shows(artist.shows)
     upcoming_shows = retrieve_upcoming_shows(artist.shows)
     return {
         "id": artist.id,
         "name": artist.name,
-        "genres": transform_genres(artist.genres),
+        "genres": artist.genres,
         "city": artist.city,
         "state": artist.state,
         "phone": artist.phone,
@@ -64,7 +73,7 @@ def safe_commit_session(model, db):
     try:
         db.session.add(model)
         db.session.commit()
-    except:
+    except Exception as e:
         error = True
         db.session.rollback()
     finally:

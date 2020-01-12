@@ -32,6 +32,17 @@ migrate = Migrate(app, db)
 # Models.
 #----------------------------------------------------------------------------#
 
+
+artist_genres = db.Table('artist_genres',
+    db.Column('artist_id', db.Integer, db.ForeignKey('artists.id'), primary_key=True),
+    db.Column('genre_id', db.Integer, db.ForeignKey('genres.id'), primary_key=True)
+    )
+
+venue_genres = db.Table('venue_genres',
+    db.Column('venue_id', db.Integer, db.ForeignKey('venues.id'), primary_key=True),
+    db.Column('genre_id', db.Integer, db.ForeignKey('genres.id'), primary_key=True)
+    )
+
 class Venue(db.Model):
     __tablename__ = 'venues'
 
@@ -47,7 +58,7 @@ class Venue(db.Model):
     website = db.Column(db.String(120))
     seeking_talent = db.Column(db.Boolean)
     seeking_description = db.Column(db.String())
-    genres = db.Column(db.String())
+    genres = db.relationship('Genre', secondary=venue_genres, backref=db.backref('venues', lazy=True))
 
     shows = db.relationship("Show", back_populates="venue")
     
@@ -64,20 +75,22 @@ class Artist(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    # genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     seeking_venue = db.Column(db.Boolean, default=False)
     shows = db.relationship("Show", back_populates="artist")
+    genres = db.relationship('Genre', secondary=artist_genres, backref=db.backref('artists', lazy=True))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
-    # "venue_id": 1,
-    # "venue_name": "The Musical Hop",
-    # "artist_id": 4,
-    # "artist_name": "Guns N Petals",
-    # "artist_image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    # "start_time": "2019-05-21T21:30:00.000Z"
+class Genre(db.Model):
+  __tablename__ = 'genres'
+  id = db.Column(db.Integer, primary_key=True)
+  name = db.Column(db.String, nullable=False)
+
+  def __repr__(self):
+    return self.name
 
 class Show(db.Model):
   __tablename__ = 'shows'
@@ -94,6 +107,10 @@ class Show(db.Model):
       return super.__repr__(self)
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
+
+
+  
+
 
 #----------------------------------------------------------------------------#
 # Filters.
@@ -119,6 +136,22 @@ app.jinja_env.filters['datetime'] = format_datetime
 @app.route('/')
 def index():
   return render_template('pages/home.html')
+
+#----------------------------------------------------------------------------#
+# Helper Functions.
+#----------------------------------------------------------------------------#
+
+def set_genre_list(model, genre_list):
+  def get_or_create_genre(genre_name):
+    genre = Genre.query.filter(Genre.name.ilike('%{}%'.format(genre_name))).first()
+    if genre:
+      return genre
+    else:
+      return Genre(name=genre_name)
+
+  model.genres.clear()
+  genre_list = [get_or_create_genre(genre) for genre in genre_list]
+  model.genres.extend(genre_list)
 
 
 #  Venues
@@ -180,12 +213,12 @@ def show_venue(venue_id):
   venue = Venue.query.get(venue_id)
   if not venue:
     return abort(404)
-  _past_shows = retrieve_past_shows(venue.shows)
-  _upcoming_shows = retrieve_upcoming_shows(venue.shows)
+  past_shows = retrieve_past_shows(venue.shows)
+  upcoming_shows = retrieve_upcoming_shows(venue.shows)
   data = {
     "id": venue.id,
     "name": venue.name,
-    "genres": venue.genres.split(),
+    "genres": venue.genres,
     "address": venue.address,
     "city": venue.city,
     "state": venue.state,
@@ -194,10 +227,10 @@ def show_venue(venue_id):
     "facebook_link": venue.facebook_link,
     "seeking_talent": venue.seeking_talent,
     "image_link": venue.image_link,
-    "past_shows": [transform_show(show) for show in _past_shows],
-    "upcoming_shows": [transform_show(show) for show in _upcoming_shows],
-    "past_shows_count": len(_past_shows),
-    "upcoming_shows_count": len(_upcoming_shows),
+    "past_shows": [transform_show(show) for show in past_shows],
+    "upcoming_shows": [transform_show(show) for show in upcoming_shows],
+    "past_shows_count": len(past_shows),
+    "upcoming_shows_count": len(upcoming_shows),
   }
   return render_template('pages/show_venue.html', venue=data)
 
@@ -215,10 +248,10 @@ def create_venue_submission():
   # TODO: modify data to be the data object returned from db insertion
   
   data = {
-   key: request.form.get(key) for key in request.form
+   key: request.form.get(key) for key in request.form if key != 'genres'
   }
-  data["genres"] = transform_genres(request.form.get('genres'))
   venue = Venue(**data)
+  set_genre_list(venue, request.form.getlist('genres'))
 
   error=False
   safe_commit_session(venue, db)
@@ -299,20 +332,6 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
   form = ArtistForm()
-  artist={
-    "id": 4,
-    "name": "Guns N Petals",
-    "genres": ["Rock n Roll"],
-    "city": "San Francisco",
-    "state": "CA",
-    "phone": "326-123-5000",
-    "website": "https://www.gunsnpetalsband.com",
-    "facebook_link": "https://www.facebook.com/GunsNPetals",
-    "seeking_venue": True,
-    "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-    "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
-  }
-
   artist = Artist.query.get(artist_id)
   artist_data=transform_artist_detail(artist)
   # TODO: populate form with fields from artist with ID <artist_id>
@@ -329,7 +348,7 @@ def edit_artist_submission(artist_id):
   artist.state = form.get('state', artist.state)
   artist.phone = form.get('phone', artist.phone)
   artist.facebook_link = form.get('facebook_link', artist.facebook_link)
-  artist.genres = transform_genres(form.get('genres')) or artist.genres
+  set_genre_list(artist, form.getlist('genres'))
   error = safe_commit_session(artist, db)
   if not error:
     artist = Artist.query.get(artist_id)
@@ -344,7 +363,6 @@ def edit_venue(venue_id):
   form = VenueForm()
   
   venue = Venue.query.get(venue_id)
-  venue.genres = transform_genres(venue.genres)
 
   # TODO: populate form with values from venue with ID <venue_id>
   return render_template('forms/edit_venue.html', form=form, venue=venue)
@@ -353,6 +371,26 @@ def edit_venue(venue_id):
 def edit_venue_submission(venue_id):
   # TODO: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
+  venue = Venue.query.get(venue_id)
+  if not venue:
+    return abort(404)
+  form = request.form
+  venue.name = form.get('name', venue.name)
+  venue.phone = form.get('phone', venue.phone)
+  venue.address = form.get('address', venue.address)
+  venue.city = form.get('city', venue.city)
+  venue.state = form.get('state', venue.state)
+  venue.facebook_link = form.get('facebook_link', venue.facebook_link)
+  set_genre_list(venue, form.getlist('genres'))
+
+  error=False
+  safe_commit_session(venue, db)
+
+  # on successful db insert, flash success
+  if not error:
+    flash('Venue ' + form.get('name') + ' was successfully listed!')
+  else:
+    flash('An error occurred. Venue ' + form.get('name') + ' could not be listed.')
   return redirect(url_for('show_venue', venue_id=venue_id))
 
 #  Create Artist
@@ -370,9 +408,11 @@ def create_artist_submission():
   # TODO: modify data to be the data object returned from db insertion
   form = request.form
   artist_data = {
-    key: form.get(key) for key in form
+    key: form.get(key) for key in form if key != 'genres'
   }
   artist = Artist(**artist_data)
+  import pdb; pdb.set_trace()
+  set_genre_list(artist, form.getlist('genres'))
 
   error = safe_commit_session(artist, db)
   if error:
