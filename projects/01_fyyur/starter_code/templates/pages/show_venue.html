@@ -10,9 +10,11 @@
 			ID: {{ venue.id }}
 		</p>
 		<div class="genres">
-			{% for genre in venue.genres %}
-			<span class="genre">{{ genre }}</span>
-			{% endfor %}
+			{% if venue.genres %}
+				{% for genre in venue.genres %}
+				<span class="genre">{{ genre }}</span>
+				{% endfor %}
+			{% endif %}
 		</div>
 		<p>
 			<i class="fas fa-globe-americas"></i> {{ venue.city }}, {{ venue.state }}
@@ -44,6 +46,11 @@
 	</div>
 	<div class="col-sm-6">
 		<img src="{{ venue.image_link }}" alt="Venue Image" />
+		<div style="margin-top: 10px;">
+			<button type="button" class="btn btn-danger" id="delete">
+					Delete Venue
+			</button>
+		</div>
 	</div>
 </div>
 <section>
@@ -74,6 +81,13 @@
 		{% endfor %}
 	</div>
 </section>
+<script type="text/javascript">
+	delButton = document.getElementById("delete")
+	delButton.addEventListener('click', ()=>{
+		console.log('deleting...')
+		// fetch({url: '/venues/' + "{{venue.id}}", method="DELETE"}).then(()=>{window.location.href="/"})
+	})
+</script>
 
 {% endblock %}
 
