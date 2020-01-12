@@ -83,9 +83,9 @@
 </section>
 <script type="text/javascript">
 	delButton = document.getElementById("delete")
+	var id = "{{venue.id}}"
 	delButton.addEventListener('click', ()=>{
-		console.log('deleting...')
-		// fetch({url: '/venues/' + "{{venue.id}}", method="DELETE"}).then(()=>{window.location.href="/"})
+		fetch(`/venues/${id}`, {method:"DELETE"}).then(()=>{window.location.href="/"})
 	})
 </script>
 

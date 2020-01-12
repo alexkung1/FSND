@@ -75,7 +75,6 @@ class Artist(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    # genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     seeking_venue = db.Column(db.Boolean, default=False)
@@ -141,7 +140,12 @@ def index():
 # Helper Functions.
 #----------------------------------------------------------------------------#
 
+# given a model with a genres association and a list of string genres,
+# set the genres associated with the model to the corresponding instrumented
+# list of Genre objects
 def set_genre_list(model, genre_list):
+  # gets a genre by name, if no corresponding genre is found, the genre is
+  # created
   def get_or_create_genre(genre_name):
     genre = Genre.query.filter(Genre.name.ilike('%{}%'.format(genre_name))).first()
     if genre:
@@ -153,6 +157,30 @@ def set_genre_list(model, genre_list):
   genre_list = [get_or_create_genre(genre) for genre in genre_list]
   model.genres.extend(genre_list)
 
+def retrieve_upcoming_shows(filter_kwargs):
+  return Show.query.filter_by(**filter_kwargs).filter(Show.start_time >= datetime.now()).all()
+
+def retrieve_past_shows(filter_kwargs):
+  return Show.query.filter_by(**filter_kwargs).filter(Show.start_time < datetime.now()).all()
+
+def transform_artist_detail(artist):
+    past_shows = retrieve_past_shows({"artist": artist})
+    upcoming_shows = retrieve_upcoming_shows({"artist": artist})
+    return {
+        "id": artist.id,
+        "name": artist.name,
+        "genres": artist.genres,
+        "city": artist.city,
+        "state": artist.state,
+        "phone": artist.phone,
+        "seeking_venue": artist.seeking_venue,
+        "image_link": artist.image_link,
+        "facebook_link": artist.facebook_link,
+        "past_shows": [transform_show(show, "venue") for show in past_shows],
+        "upcoming_shows": [transform_show(show, "venue") for show in upcoming_shows],
+        "past_shows_count": len(past_shows),
+        "upcoming_shows_count": len(upcoming_shows),
+    }
 
 #  Venues
 #  ----------------------------------------------------------------
@@ -170,7 +198,7 @@ def venues():
     parsed_venue = {
       "id": venue.id,
       "name": venue.name,
-      "num_upcoming_shows": len(retrieve_upcoming_shows(venue.shows))
+      "num_upcoming_shows": len(retrieve_upcoming_shows({"venue": venue}))
     }
     for i in range(len(data)):
       location = data[i]
@@ -201,7 +229,7 @@ def search_venues():
 
   response={
     "count": len(matching_venues),
-    "data": [{"id": venue.id, "name": venue.name, "num_upcoming_shows": len(retrieve_upcoming_shows(venue.shows))} for venue in matching_venues]
+    "data": [{"id": venue.id, "name": venue.name, "num_upcoming_shows": len(retrieve_upcoming_shows({ "venue":venue }))} for venue in matching_venues]
   }
   return render_template('pages/search_venues.html', results=response, search_term=search_term)
 
@@ -213,8 +241,8 @@ def show_venue(venue_id):
   venue = Venue.query.get(venue_id)
   if not venue:
     return abort(404)
-  past_shows = retrieve_past_shows(venue.shows)
-  upcoming_shows = retrieve_upcoming_shows(venue.shows)
+  past_shows = retrieve_past_shows({"venue": venue })
+  upcoming_shows = retrieve_upcoming_shows({ "venue": venue })
   data = {
     "id": venue.id,
     "name": venue.name,
@@ -268,11 +296,8 @@ def create_venue_submission():
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
-  # TODO: Complete this endpoint for taking a venue_id, and using
-  # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
 
   venue = Venue.query.get(venue_id)
-
   error = False
   try:
     db.session.delete(venue)
@@ -313,7 +338,7 @@ def search_artists():
     "data": [{
       "id": artist.id,
       "name": artist.name,
-      "num_upcoming_shows": len(retrieve_upcoming_shows(artist.shows)),
+      "num_upcoming_shows": len(retrieve_upcoming_shows({ "artist": artist })),
     } for artist in matching_artists]
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
@@ -404,8 +429,6 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
   # called upon submitting the new artist listing form
-  # TODO: insert form data as a new Venue record in the db, instead
-  # TODO: modify data to be the data object returned from db insertion
   form = request.form
   artist_data = {
     key: form.get(key) for key in form if key != 'genres'
@@ -418,10 +441,7 @@ def create_artist_submission():
   if error:
     flash('Unable to add artist ' + artist_data.get("name"))
   else:
-    # on successful db insert, flash success
     flash('Artist ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
   return render_template('pages/home.html')
 
 
