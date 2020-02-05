@@ -13,8 +13,6 @@ def paginate_questions(request, selection):
     page = request.args.get('page', 1, type=int)
     start = QUESTIONS_PER_PAGE * (page - 1)
     end = start + QUESTIONS_PER_PAGE
-    import pdb
-    pdb.set_trace()
     return [question.format() for question in selection[start:end]]
 
 
@@ -22,10 +20,18 @@ def get_all_categories():
     return {category.id: category.type for category in Category.query.all()}
 
 
+def get_questions_by_category(category):
+    return Question.query.filter_by(category=category).all()
+
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
-    setup_db(app)
+
+    if test_config and test_config.get("SQLALCHEMY_DATABASE_URI"):
+        setup_db(app, test_config.get("SQLALCHEMY_DATABASE_URI"))
+    else:
+        setup_db(app)
 
     '''
     @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
@@ -52,7 +58,8 @@ def create_app(test_config=None):
 
     @app.route("/categories")
     def home():
-        categories = [category.format() for category in Category.query.all()]
+        categories = {category.id: category.type
+                      for category in Category.query.all()}
 
         return jsonify({"categories": categories, "status": 200, "success": True})
 
@@ -77,19 +84,34 @@ def create_app(test_config=None):
 
             return jsonify({"questions": questions, "status": 200, "success": True, "category": None, "categories": get_all_categories()})
         else:
-            data = request.data
+            data = request.json
+
+            searchTerm = data.get("searchTerm")
+
+            if searchTerm is not None:
+                questions = paginate_questions(request, Question.query.filter(
+                    Question.question.ilike("%{}%".format(searchTerm))).all())
+                return jsonify({"questions": questions, "status": 200, "success": True, "category": None, "categories": get_all_categories()})
             try:
+                category_id = data.get("category")
+
+                data["category"] = Category.query.get(category_id).type
                 question = Question(**data)
                 question.insert()
+
                 return jsonify({"questions": Question.query.count(), "total_questions": Question.query.count(), "status": 200, "success": True, "created": question.id})
-            except:
+            except Exception as e:
                 db.session.rollback()
                 return abort(400)
 
-    @app.route("/categories/<int:catgory_id>/questions")
+    @app.route("/categories/<int:category_id>/questions")
     def questions_by_category(category_id):
         category = Category.query.get(category_id)
-        questions = Question.query.filter_by(category=category.type)
+
+        if not category:
+            return abort(404)
+        questions = paginate_questions(
+            request, get_questions_by_category(category.type))
         return jsonify({"questions": questions, "status": 200, "success": True, "category": category.type, "categories": get_all_categories()})
 
     """
@@ -102,7 +124,12 @@ def create_app(test_config=None):
 
     @app.route("/questions/<int:question_id>", methods=["DELETE"])
     def delete_question(question_id):
+
         question = Question.query.get(question_id)
+
+        if not question:
+            return abort(404)
+
         question.delete()
         return jsonify({"status": 200, "success": True, "deleted": question_id, "questions": Question.query.count(), "total_questions": Question.query.count()})
 
@@ -149,10 +176,51 @@ def create_app(test_config=None):
     and shown whether they were correct or not. 
     """
 
+    @app.route("/quizzes", methods=["POST"])
+    def quizzes():
+        data = request.json
+        previous_questions = data.get("previous_questions")
+        quiz_category = data.get("quiz_category")
+
+        questions = Question.query.filter(~Question.id.in_(previous_questions))
+        if quiz_category.get("id") != 0:
+            questions = questions.filter_by(category=quiz_category.get("type"))
+
+        num_questions = len(questions.all())
+        random.seed()
+        if num_questions:
+            random_num = random.randrange(0, num_questions)
+            return jsonify({"question": questions.all()[random_num].format(), "status": 200, "success": True}), 200
+
+        return jsonify({"question": None, "status": 200, "success": True}), 200
     """
     @TODO: 
     Create error handlers for all expected errors 
     including 404 and 422. 
     """
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({
+            "status": 400,
+            "message": 'Bad request',
+            "success": False
+        }), 400
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            "status": 404,
+            "message": 'Resource not found',
+            "success": False
+        }), 404
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return jsonify({
+            "status": 422,
+            "message": 'Unprocessable entity',
+            "success": False
+        }), 422
 
     return app
