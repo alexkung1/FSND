@@ -94,7 +94,7 @@ GET '/categories'
 
 ## Endpoints
 
-GET /categories
+**GET /categories**
 
 Returns a dictionary of categories which map a category id to the corresponding string of the category
 
@@ -114,7 +114,7 @@ Example Response
 }
 ```
 
-GET /questions
+**GET /questions**
 
 Returns a paginated list of questions with a limit of 10 questions per page.
 Include a page number as a request argument e.g., `/questions?page=2`
@@ -150,9 +150,11 @@ Example Response
 }
 ```
 
-POST /questions
+**POST /questions**
 
-Creates a new question
+_Creating a new question_
+
+To create a new question, provide a request in the following format:
 
 Example Request
 
@@ -174,6 +176,127 @@ Example Response
     "status": 200,
     "success": true,
     "total_questions": 9
+}
+```
+
+_Searching questions_
+
+To filter questions based on a search term, provide a search term in the request as follows:
+
+```
+{
+	"searchTerm": "powerhouse"
+}
+```
+
+Example Response
+
+```
+{
+    "categories": {
+        "1": "Science",
+        "2": "Math"
+    },
+    "category": null,
+    "questions": [
+        {
+            "answer": "Mitochondria",
+            "category": "Science",
+            "difficulty": 1,
+            "id": 2,
+            "question": "What is the powerhouse of the cell?"
+        }
+    ],
+    "status": 200,
+    "success": true
+}
+```
+
+**GET /categories/<category_id>/questions**
+
+Retrieve a questions based on category id
+
+Example Request
+
+```
+curl 127.0.0.1:5000/categories/1/questions
+```
+
+Example Response
+
+```
+{
+    "categories": {
+        "1": "Science",
+        "2": "Math"
+    },
+    "category": "Science",
+    "questions": [
+        {
+            "answer": "Mitochondria",
+            "category": "Science",
+            "difficulty": 1,
+            "id": 2,
+            "question": "What is the powerhouse of the cell?"
+        },
+    ],
+    "status": 200,
+    "success": true
+}
+```
+
+**DELETE /questions/<question_id>**
+
+Delete a question based on the provided question id
+
+Example Request
+
+```
+curl -X DELETE 127.0.0.1:5000/questions/7
+```
+
+Example Response
+
+```
+{
+    "deleted": 7,
+    "questions": 10,
+    "status": 200,
+    "success": true,
+    "total_questions": 10
+}
+```
+
+**POST /quizzes**
+
+Retrieve a random question from the specified category. Previous questions are specified by id as follows
+
+Example Request
+
+```
+{
+	"previous_questions": [4, 3],
+	"quiz_category": {
+		"id": 2,
+		"type": "Math"
+	}
+
+}
+```
+
+Example Response
+
+```
+{
+    "question": {
+        "answer": "14",
+        "category": "Math",
+        "difficulty": 1,
+        "id": 3,
+        "question": "What is 12+2?"
+    },
+    "status": 200,
+    "success": true
 }
 ```
 
