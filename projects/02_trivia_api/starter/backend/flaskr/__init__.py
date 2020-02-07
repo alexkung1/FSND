@@ -82,7 +82,7 @@ def create_app(test_config=None):
             selection = Question.query.all()
             questions = paginate_questions(request, selection)
 
-            return jsonify({"questions": questions, "status": 200, "success": True, "category": None, "categories": get_all_categories()})
+            return jsonify({"questions": questions, "status": 200, "success": True, "category": None, "categories": get_all_categories(), "total_questions": len(selection)})
         else:
             data = request.json
 
@@ -100,7 +100,7 @@ def create_app(test_config=None):
                 question.insert()
 
                 return jsonify({"questions": Question.query.count(), "total_questions": Question.query.count(), "status": 200, "success": True, "created": question.id})
-            except Exception as e:
+            except Exception:
                 db.session.rollback()
                 return abort(400)
 
@@ -179,12 +179,17 @@ def create_app(test_config=None):
     @app.route("/quizzes", methods=["POST"])
     def quizzes():
         data = request.json
-        previous_questions = data.get("previous_questions")
-        quiz_category = data.get("quiz_category")
+        try:
+            previous_questions = data["previous_questions"]
+            quiz_category = data["quiz_category"]
+            quiz_category_type = quiz_category["type"]
+            quiz_category_id = quiz_category["id"]
+        except:
+            return abort(400)
 
         questions = Question.query.filter(~Question.id.in_(previous_questions))
-        if quiz_category.get("id") != 0:
-            questions = questions.filter_by(category=quiz_category.get("type"))
+        if quiz_category_id != 0:
+            questions = questions.filter_by(category=quiz_category_type)
 
         num_questions = len(questions.all())
         random.seed()
@@ -202,7 +207,7 @@ def create_app(test_config=None):
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({
-            "status": 400,
+            "error": 400,
             "message": 'Bad request',
             "success": False
         }), 400
@@ -210,17 +215,33 @@ def create_app(test_config=None):
     @app.errorhandler(404)
     def not_found(error):
         return jsonify({
-            "status": 404,
+            "error": 404,
             "message": 'Resource not found',
             "success": False
         }), 404
 
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({
+            "error": 405,
+            "message": 'Method not allowed',
+            "success": False
+        }), 405
+
     @app.errorhandler(422)
     def unprocessable(error):
         return jsonify({
-            "status": 422,
+            "error": 422,
             "message": 'Unprocessable entity',
             "success": False
         }), 422
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return jsonify({
+            "error": 500,
+            "message": 'Internal server error',
+            "success": False
+        }), 500
 
     return app

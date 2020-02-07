@@ -104,11 +104,36 @@ class TriviaTestCase(unittest.TestCase):
         res = self.client().post(
             '/quizzes', json={"previous_questions": [], "quiz_category": self.test_category.format()})
         data = res.json
-        import pdb
-        pdb.set_trace()
-        self.assertEqual(True, True)
+        self.assertTrue(data.get("question"))
+        self.assertEqual(data.get("success"), True)
+        self.assertEqual(res.status_code, 200)
+
+    # Test Error Handling
+
+    def test_method_not_allowed(self):
+        res = self.client().get(
+            '/questions/30')
+        data = res.json
+        self.assertEqual(data.get("success"), False)
+        self.assertEqual(data.get("error"), "Method not allowed")
+        self.assertEqual(res.status_code, 405)
+
+    def test_not_found(self):
+        res = self.client().delete(
+            '/questions/30')
+        data = res.json
+        self.assertEqual(data.get("success"), False)
+        self.assertEqual(data.get("error"), "Resource not found")
+        self.assertEqual(res.status_code, 404)
+
+    def test_bad_request(self):
+        res = self.client().post(
+            '/questions', json={"badjson": "fakedata"})
+        data = res.json
+        self.assertEqual(data.get("success"), False)
+        self.assertEqual(data.get("error"), "Bad request")
+        self.assertEqual(res.status_code, 400)
 
 
-        # Make the tests conveniently executable
 if __name__ == "__main__":
     unittest.main()
