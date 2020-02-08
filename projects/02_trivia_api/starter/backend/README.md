@@ -56,11 +56,11 @@ Setting the `FLASK_APP` variable to `flaskr` directs flask to use the `flaskr` d
 
 ## Endpoints
 
-**GET /categories**
+#### GET /categories
 
 Returns a dictionary of categories which map a category id to the corresponding string of the category
 
-Example Response
+**Example Response**
 
 ```
 {
@@ -76,12 +76,12 @@ Example Response
 }
 ```
 
-**GET /questions**
+#### GET /questions
 
 Returns a paginated list of questions with a limit of 10 questions per page.
 Include a page number as a request argument e.g., `/questions?page=2`
 
-Example Response
+**Example Response**
 
 ```
 {
@@ -112,13 +112,13 @@ Example Response
 }
 ```
 
-**POST /questions**
+#### POST /questions
 
 _Creating a new question_
 
 To create a new question, provide a request in the following format:
 
-Example Request
+**Example Request**
 
 ```
 {
@@ -129,7 +129,7 @@ Example Request
 }
 ```
 
-Example Response
+**Example Response**
 
 ```
 {
@@ -151,7 +151,7 @@ To filter questions based on a search term, provide a search term in the request
 }
 ```
 
-Example Response
+**Example Response**
 
 ```
 {
@@ -174,17 +174,17 @@ Example Response
 }
 ```
 
-**GET /categories/<category_id>/questions**
+#### GET /categories/<category_id>/questions
 
 Retrieve a questions based on category id
 
-Example Request
+**Example Request**
 
 ```
 curl 127.0.0.1:5000/categories/1/questions
 ```
 
-Example Response
+**Example Response**
 
 ```
 {
@@ -207,17 +207,17 @@ Example Response
 }
 ```
 
-**DELETE /questions/<question_id>**
+#### DELETE /questions/<question_id>
 
 Delete a question based on the provided question id
 
-Example Request
+**Example Request**
 
 ```
 curl -X DELETE 127.0.0.1:5000/questions/7
 ```
 
-Example Response
+**Example Response**
 
 ```
 {
@@ -229,11 +229,11 @@ Example Response
 }
 ```
 
-**POST /quizzes**
+#### POST /quizzes
 
 Retrieve a random question from the specified category. Previous questions are specified by id as follows
 
-Example Request
+**Example Request**
 
 ```
 {
@@ -246,7 +246,7 @@ Example Request
 }
 ```
 
-Example Response
+**Example Response**
 
 ```
 {
