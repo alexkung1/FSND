@@ -114,7 +114,7 @@ Include a page number as a request argument e.g., `/questions?page=2`
 
 #### POST /questions
 
-_Creating a new question_
+**Creating a new question**
 
 To create a new question, provide a request in the following format:
 
@@ -141,7 +141,7 @@ To create a new question, provide a request in the following format:
 }
 ```
 
-_Searching questions_
+**Searching questions**
 
 To filter questions based on a search term, provide a search term in the request as follows:
 
