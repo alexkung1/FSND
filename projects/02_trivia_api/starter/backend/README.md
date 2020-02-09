@@ -58,7 +58,10 @@ Setting the `FLASK_APP` variable to `flaskr` directs flask to use the `flaskr` d
 
 #### GET /categories
 
-Returns a dictionary of categories which map a category id to the corresponding string of the category
+
+- General:
+  - Returns a dictionary of categories which map a category id to the corresponding string of the category
+- Sample: `curl https://127.0.0.1:5000/categories`
 
 **Example Response**
 
@@ -78,8 +81,11 @@ Returns a dictionary of categories which map a category id to the corresponding 
 
 #### GET /questions
 
-Returns a paginated list of questions with a limit of 10 questions per page.
-Include a page number as a request argument e.g., `/questions?page=2`
+- General:
+  - Returns a list of questions, success value, and total number of questions
+  - Questions are paginated with a limit of 10 questions per page
+  - Include a page number as a request argument e.g., `/questions?page=2`
+- Sample: `https://127.0.0.1:500/questions?page=1`
 
 **Example Response**
 
@@ -114,9 +120,16 @@ Include a page number as a request argument e.g., `/questions?page=2`
 
 #### POST /questions
 
+A post to the `/questions` endpoint can either be used to create a new question, or to search all questions.
+
 **Creating a new question**
 
-To create a new question, provide a request in the following format:
+- General:
+  - To create a new question, the following fields must be specified in the request: `question`, `answer`, `difficulty` and `category`
+- Sample:
+
+  - via curl:
+`curl -d '{"question":"What is 4 + 8", "answer":"12", "difficulty": 1, "category": 1 }' -H "Content-Type: application/json" -X POST http://localhost:5000/questions`
 
 **Example Request**
 
@@ -143,7 +156,12 @@ To create a new question, provide a request in the following format:
 
 **Searching questions**
 
-To filter questions based on a search term, provide a search term in the request as follows:
+- General:
+  - To filter questions based on a search term, provide a `searchTerm` in the request body
+- Sample
+  - via curl:  `curl -d '{"searchTerm": "powerhouse" }' -H "Content-Type: application/json" -X POST http://localhost:5000/questions`
+
+**Example Request**
 
 ```
 {
@@ -176,13 +194,10 @@ To filter questions based on a search term, provide a search term in the request
 
 #### GET /categories/<category_id>/questions
 
-Retrieve a questions based on category id
+- General:
+  - Retrieve a questions based on category id
+- Sample `curl 127.0.0.1:5000/categories/1/questions`
 
-**Example Request**
-
-```
-curl 127.0.0.1:5000/categories/1/questions
-```
 
 **Example Response**
 
@@ -209,13 +224,10 @@ curl 127.0.0.1:5000/categories/1/questions
 
 #### DELETE /questions/<question_id>
 
-Delete a question based on the provided question id
+- General:
+  - Delete a question based on a question id
+- Sample: `curl -X DELETE 127.0.0.1:5000/questions/7`
 
-**Example Request**
-
-```
-curl -X DELETE 127.0.0.1:5000/questions/7
-```
 
 **Example Response**
 
@@ -231,7 +243,10 @@ curl -X DELETE 127.0.0.1:5000/questions/7
 
 #### POST /quizzes
 
-Retrieve a random question from the specified category. Previous questions are specified by id as follows
+- General: 
+  - Retrieve a random quiz question from the specified category. 
+  - Previously asked questions can be specified in the `previous_questions` key of request body
+- Sample: `curl -d '{"previous_questions": [4, 3], "quiz_category": {"id": 2, "type": "Math"}}' -H "Content-Type: application/json" -X POST http://localhost:5000/questions`
 
 **Example Request**
 
